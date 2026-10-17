@@ -53,8 +53,8 @@ Then in the browser:
    your code:
 
    ```bash
-   npm run dev:agent            # or:
-   npm run pair -- --code K7F2-9QMR
+   npm run dev:agent            # or, to pair and start in one step:
+   npm run pair -w agent -- --code K7F2-9QMR
    ```
 
    > The viewer draws its own cursor on top of the streamed image: OS-level
@@ -184,7 +184,7 @@ proxy them, which is why the socket connects directly to the Render origin.
 ```bash
 npm install
 cp agent/.env.example agent/.env     # set SERVER_URL=https://your.domain
-npm run pair -- --code XXXX-XXXX     # first run, starts the agent
+npm run pair -w agent -- --code XXXX-XXXX     # first run, starts the agent
 ```
 
 Subsequent runs: `npm run start -w agent`. The token is stored in

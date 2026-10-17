@@ -33,7 +33,7 @@ async function main() {
     console.error(
       '\nThis machine is not paired yet.\n' +
         '1. Open the dashboard -> "Add device" to generate a pairing code.\n' +
-        '2. Run:  npm run pair -- --code XXXX-XXXX\n' +
+        '2. Run:  npm run pair -w agent -- --code XXXX-XXXX\n' +
         '   (or set ENROLL_CODE in agent/.env and run npm run dev:agent)\n'
     );
     process.exit(1);

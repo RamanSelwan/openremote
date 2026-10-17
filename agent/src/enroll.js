@@ -23,7 +23,7 @@ export async function enroll(config = loadConfig()) {
   if (!code) {
     throw new Error(
       'No pairing code. Generate one in the dashboard (Add device), then run:\n' +
-        '  npm run pair -- --code XXXX-XXXX'
+        '  npm run pair -w agent -- --code XXXX-XXXX'
     );
   }
 

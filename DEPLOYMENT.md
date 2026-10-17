@@ -102,7 +102,7 @@ The agent is not deployed to web. On each machine you want to control:
 # from repo root or agent dir
 npm install
 # pair
-npm run pair -- --code YOUR_CODE --server https://your-render-app.onrender.com
+npm run pair -w agent -- --code YOUR_CODE --server https://your-render-app.onrender.com
 # or set SERVER_URL in agent/.env and run:
 npm run dev:agent
 ```
