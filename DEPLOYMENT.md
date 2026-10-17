@@ -78,7 +78,7 @@ Add rewrites in `vercel.json` to forward API/socket traffic to Render:
 Then set `CLIENT_ORIGIN` on Render to `https://your-app.vercel.app` (as above). This keeps the browser hitting the same origin (Vercel) for API+WS, so CORS is simpler and avoids some cross-origin quirks.
 
 ### Option B: Point frontend to Render directly
-Update the client to use `VITE_API_BASE`/socket URL. The current [`client/src/lib/api.js`](client/src/lib/api.js) and socket setup in [`client/src/pages/RemoteView.jsx`](client/src/pages/RemoteView.jsx) assume same origin or window.location. If you want direct cross-origin, set `CLIENT_ORIGIN` on Render to your Vercel URL and ensure the frontend connects to `https://your-render-app.onrender.com`. 
+Update the client to use `VITE_API_URL`/socket URL. The current [`client/src/lib/endpoints.js`](client/src/lib/endpoints.js) reads `VITE_API_URL` and `VITE_SERVER_URL`, falling back to the page origin. If you want direct cross-origin, set `CLIENT_ORIGIN` on Render to your Vercel URL and ensure the frontend connects to `https://your-render-app.onrender.com`. 
 
 I'd recommend **Option A** (Vercel rewrites) to keep a single origin.
 
@@ -98,11 +98,18 @@ The agent is not deployed to web. On each machine you want to control:
 npm install
 # pair
 npm run pair -- --code YOUR_CODE --server https://your-render-app.onrender.com
-# or set env
-AGENT_SERVER_URL=https://your-render-app.onrender.com npm run dev -w agent
+# or set SERVER_URL in agent/.env and run:
+npm run dev:agent
 ```
 
-See [`agent/src/config.js`](agent/src/config.js) for env vars: `AGENT_SERVER_URL`, `AGENT_DEVICE_TOKEN`, `AGENT_NAME`, `CAPTURE_INTERVAL_MS` (default 120ms), `CAPTURE_QUALITY` (default 55), `CAPTURE_SCALE` (default 0.65), `CAPTURE_FPS` (default 10).
+See [`agent/.env.example`](agent/.env.example) and [`agent/src/config.js`](agent/src/config.js)
+for the real env vars: `SERVER_URL`, `DEVICE_NAME`, `ACCESS_MODE` (`approve`/`open`),
+`AUTO_ACCEPT`, `ALLOW_CONTROL`, `FPS` (default 15), `SCALE` (default 0.65),
+`QUALITY` (default 55), `CAPTURE_DRIVER`, `INPUT_DRIVER`.
+
+> The variable names must match `config.js` exactly. Names like
+> `AGENT_SERVER_URL` or `CAPTURE_FPS` are **not** read and will be silently
+> ignored, leaving the agent pointed at `http://localhost:5000`.
 
 Windows capture uses [`agent/native/win-capture.ps1`](agent/native/win-capture.ps1) via `child_process` (spawns PowerShell). On Linux/macOS you can extend the capture backend; current code targets Windows primarily.
 
@@ -117,8 +124,8 @@ What's already tuned for low lag:
 - CORS allowlist via `CLIENT_ORIGIN` + same-origin support ([server/src/index.js:40-47](server/src/index.js#L40-L47))
 
 Recommendations in production:
-- Keep `CAPTURE_INTERVAL_MS` between 80–150ms. Lower = smoother but uses more bandwidth/CPU. Start ~120ms.
-- `CAPTURE_SCALE` 0.5–0.8, `CAPTURE_QUALITY` 40–70 balances crispness vs size. The viewer can request tuning.
+- Keep `FPS` between 8–12. Lower = smoother but uses more bandwidth/CPU. Start ~10.
+- `SCALE` 0.5–0.8, `QUALITY` 40–70 balances crispness vs size. The viewer can request tuning.
 - Use HTTPS everywhere (Render/Vercel do this by default). 
 - If you see socket reconnect churn on Render Free tier, the service may sleep after inactivity. Consider Render Starter or enable "Always On". 
 - For many viewers controlling one agent, the first grant starts streaming; additional granted viewers share the same stream (server relays frames to all granted viewers). 
@@ -136,7 +143,7 @@ Recommendations in production:
 - **Socket disconnects**: Check Render logs (Events/Logs). Free tier sleeps; wake up on first request. Also ensure no adblock interfering with WS.
 - **Agent can't enroll/connect**: Verify `AGENT_SERVER_URL` points to Render HTTPS URL. Check agent logs in terminal. Enrollment uses the pairing code from dashboard.
 - **Black/empty frames on Windows**: The PowerShell capture runs `SetProcessDPIAware()` and copies primary screen. Multi-monitor? Currently captures primary screen only (`[System.Windows.Forms.Screen]::PrimaryScreen.Bounds`).
-- **High CPU/latency**: Increase `CAPTURE_SCALE` (e.g. 0.5) or lower `CAPTURE_FPS`/raise `CAPTURE_INTERVAL_MS`. Watch agent CPU and network. 
+- **High CPU/latency**: Lower `SCALE` (e.g. 0.5), reduce `FPS`/`QUALITY`. Watch agent CPU and network. 
 
 ---
 
