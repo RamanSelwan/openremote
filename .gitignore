@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.vite/
+.vercel/
+*.log
+npm-debug.log*
+
+# secrets / local env
+.env
+.env.local
+*.pem
+
+# agent runtime state (device identity + token)
+agent/data/
+
+# mongodb-memory-server downloads & data
+.mms/
+mongo-data/
+
+# OS
+.DS_Store
+Thumbs.db

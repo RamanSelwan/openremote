@@ -1,0 +1,22 @@
+{
+  "name": "@openremote/agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenRemote desktop agent - screen capture + remote input daemon",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env src/index.js",
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "pair": "node --env-file-if-exists=.env src/index.js --enroll"
+  },
+  "dependencies": {
+    "jpeg-js": "^0.4.4",
+    "screenshot-desktop": "^1.15.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "optionalDependencies": {
+    "robotjs": "^0.9.1",
+    "sharp": "^0.34.4"
+  }
+}

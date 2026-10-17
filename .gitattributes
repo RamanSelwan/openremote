@@ -1,0 +1,10 @@
+# Normalize line endings: LF in the repo, auto per-platform on checkout.
+* text=auto eol=lf
+
+# Windows-native scripts keep CRLF.
+*.ps1 text eol=crlf
+
+# Binary assets.
+*.png binary
+*.jpg binary
+*.ico binary

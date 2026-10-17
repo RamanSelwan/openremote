@@ -1,0 +1,25 @@
+# Render blueprint: API + Socket.IO relay + the built dashboard.
+# Create a Blueprint from this repo (or a Web Service with the same settings).
+services:
+  - type: web
+    name: openremote
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      # Render generates a strong secret on first deploy.
+      - key: JWT_SECRET
+        generateValue: true
+      # Set these in the Render dashboard after creating the service.
+      - key: MONGODB_URI
+        sync: false
+      - key: CLIENT_ORIGIN
+        sync: false
