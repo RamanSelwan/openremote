@@ -62,31 +62,35 @@ This repo includes [`vercel.json`](./vercel.json) at the root.
    - Output Directory: `client/dist`
 5. Environment Variables (optional but fine): Frontend uses relative paths (`/api`, `/socket.io`), so no `VITE_API_URL` is required if you serve via same domain. Since we split origins (Vercel frontend + Render backend), the frontend will call the Render URL. You have two good options:
 
-### Option A: Keep relative paths by proxying (easier for cookies later)
-Add rewrites in `vercel.json` to forward API/socket traffic to Render:
+### Option A: Point the frontend directly at Render (recommended)
+Set these in **Vercel → Settings → Environment Variables** for Production (and Preview if used):
 
-```json
-{
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "https://your-render-app.onrender.com/api/:path*" },
-    { "source": "/socket.io/:path*", "destination": "https://your-render-app.onrender.com/socket.io/:path*" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
+| Variable | Value |
+|---|---|
+| `VITE_API_URL` | `https://your-render-app.onrender.com` |
+| `VITE_SERVER_URL` | `https://your-render-app.onrender.com` |
 
-Then set `CLIENT_ORIGIN` on Render to `https://your-app.vercel.app` (as above). This keeps the browser hitting the same origin (Vercel) for API+WS, so CORS is simpler and avoids some cross-origin quirks.
+Vite inlines them at build time, so **redeploy after changing them**. Then set
+`CLIENT_ORIGIN` on Render to `https://your-app.vercel.app`.
 
-### Option B: Point frontend to Render directly
-Update the client to use `VITE_API_URL`/socket URL. The current [`client/src/lib/endpoints.js`](client/src/lib/endpoints.js) reads `VITE_API_URL` and `VITE_SERVER_URL`, falling back to the page origin. If you want direct cross-origin, set `CLIENT_ORIGIN` on Render to your Vercel URL and ensure the frontend connects to `https://your-render-app.onrender.com`. 
+> **Why not proxy `/socket.io` through Vercel rewrites?** Vercel rewrites do
+> **not** carry WebSocket upgrades, so the realtime socket would fail to connect
+> even though REST calls would work. The browser must reach the Render origin
+> directly for `/socket.io` (see the README note: *"Vercel does not proxy them,
+> which is why the socket connects directly to the Render origin"*). This is why
+> `VITE_SERVER_URL` exists separately from `VITE_API_URL`.
 
-I'd recommend **Option A** (Vercel rewrites) to keep a single origin.
+### Option B: Keep a single origin with a WebSocket-capable proxy
+If you specifically want one origin (e.g. to add cookies later), put a proxy
+that supports WebSocket upgrades (**Nginx**, **Caddy**, or **Cloudflare**) in
+front of both, or simply serve the dashboard from the Render service itself
+(single-service deployment). Vercel rewrites alone are not sufficient.
 
 After deploy, Vercel gives you `https://your-app.vercel.app`. Put that into Render's `CLIENT_ORIGIN`.
 
 ## 4) Connect the pieces
 1. Deploy Render backend first. Verify `/api/health` returns `{"ok":true,...}`.
-2. Update Vercel rewrites to point to your Render URL (if using Option A).
+2. Set the Vercel env vars (`VITE_API_URL`, `VITE_SERVER_URL`) to your Render URL (see §3).
 3. Deploy Vercel frontend.
 4. Open Vercel URL, register the first account (becomes admin), generate a pairing code, run the agent on the target machine.
 
