@@ -279,11 +279,32 @@ export default function RemoteView() {
   const pendingMove = useRef(null);
   const moveFrame = useRef(0);
 
-  const normFromEvent = (e) => {
+  /**
+   * Rendered picture area inside the canvas element.
+   *
+   * The canvas CSS box fills the whole stage, so with `object-fit: contain`
+   * the image is letterboxed inside it. Pointer maths must use the drawn
+   * area, otherwise every coordinate is offset/scaled near the edges.
+   */
+  const imageRect = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return null;
+    if (!canvas || !canvas.width || !canvas.height) return null;
     const rect = canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return null;
+    const scale = Math.min(rect.width / canvas.width, rect.height / canvas.height);
+    const width = canvas.width * scale;
+    const height = canvas.height * scale;
+    return {
+      left: rect.left + (rect.width - width) / 2,
+      top: rect.top + (rect.height - height) / 2,
+      width,
+      height,
+    };
+  };
+
+  const normFromEvent = (e) => {
+    const rect = imageRect();
+    if (!rect || !rect.width || !rect.height) return null;
     const x = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
     const y = Math.min(1, Math.max(0, (e.clientY - rect.top) / rect.height));
     return { x, y };
