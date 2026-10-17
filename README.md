@@ -141,6 +141,10 @@ npm run build          # builds client/dist
 MONGODB_URI=mongodb://... JWT_SECRET=<long-random> NODE_ENV=production npm start
 ```
 
+> If your platform exports `NODE_ENV=production` **before** installing, use
+> `npm ci --include=dev` for the install step: npm skips `devDependencies` in
+> production mode, and the build tools (`vite`) live there.
+
 The Express server serves `client/dist` and the WebSocket relay on the same
 origin, so no CORS configuration is needed. `GET /api/health` returns `200`
 only when MongoDB is connected — point the platform health check at it.
@@ -158,8 +162,8 @@ repo, then set `MONGODB_URI` (MongoDB Atlas free tier is enough) and leave
 1. Deploy the backend first (Option A) and note its URL, e.g.
    `https://openremote.onrender.com`.
 2. Import the same repo into Vercel. `vercel.json` already sets the install
-   command (`npm ci`), build command (`npm run build`) and output directory
-   (`client/dist`).
+   command (`npm ci --include=dev`), build command (`npm run build`) and output
+   directory (`client/dist`).
 3. In **Vercel → Settings → Environment Variables** add for Production:
 
    | Variable | Value |

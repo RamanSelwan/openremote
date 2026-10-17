@@ -19,7 +19,7 @@ This repo includes [`render.yaml`](./render.yaml). Render can create the service
 2. Go to Render → New → Blueprint.
 3. Connect the repo and select the branch.
 4. Render will create `openremote` web service with:
-   - Build: `npm ci && npm run build` (builds the client too so the server can serve `client/dist` in production)
+   - Build: `npm ci --include=dev && npm run build` (builds the client too so the server can serve `client/dist` in production)
    - Start: `npm start` (runs `server/src/index.js`)
    - Health check: `/api/health`
 
@@ -27,7 +27,7 @@ This repo includes [`render.yaml`](./render.yaml). Render can create the service
 1. Render → New → Web Service → Connect repo.
 2. Settings:
    - Runtime: Node
-   - Build Command: `npm ci && npm run build`
+   - Build Command: `npm ci --include=dev && npm run build`
    - Start Command: `npm start`
    - Health Check Path: `/api/health`
    - Plan: Free (ok to start)
@@ -46,6 +46,7 @@ Set these in the Render dashboard for your service:
 
 Notes:
 - The server serves the built React app from `client/dist` when present (see [`server/src/index.js`](server/src/index.js)). The root `build` script runs `npm run build -w client`, so `npm run build` in Render produces the dist.
+- **`--include=dev` is required on the install step.** `render.yaml` sets `NODE_ENV=production`, and npm omits `devDependencies` in production mode — but the build tools (`vite`, `@vitejs/plugin-react`) *are* devDependencies. Without the flag the build fails with `sh: 1: vite: not found`. The same applies to any CI that exports `NODE_ENV=production` before installing.
 - Health check returns 200 only when MongoDB is connected (`/api/health`).
 - JWT_SECRET defaults to an insecure dev value if unset (you'll see a warning in dev). **Must** be set on Render.
 
@@ -57,7 +58,7 @@ This repo includes [`vercel.json`](./vercel.json) at the root.
 2. Import your Git repo.
 3. Framework Preset: `Other` (or leave auto). The config sets framework to null.
 4. Build & Output Settings (auto-filled from `vercel.json`):
-   - Install Command: `npm ci`
+   - Install Command: `npm ci --include=dev`
    - Build Command: `npm run build` (runs client build)
    - Output Directory: `client/dist`
 5. Environment Variables (optional but fine): Frontend uses relative paths (`/api`, `/socket.io`), so no `VITE_API_URL` is required if you serve via same domain. Since we split origins (Vercel frontend + Render backend), the frontend will call the Render URL. You have two good options:
