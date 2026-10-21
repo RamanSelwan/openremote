@@ -103,8 +103,8 @@ resolutions, DPI scales and window sizes.
 | Realtime | Socket.IO 4 | Rooms, volatile emits, binary payloads, reconnects |
 | Auth | JSONWebToken + bcryptjs | Stateless API auth, bcrypt password hashing |
 | Frontend | React 18 + Vite 6 + React Router 6 | Fast dev loop, simple SPA |
-| Agent capture | `robotjs` (preferred) → `screenshot-desktop` → `powershell` → synthetic | RobotJS returns raw pixels: no temp files, 17–57 ms/frame |
-| Encoding | `sharp` (native libvips) → `jpeg-js` (pure JS) | sharp ≈ 4× faster; JS fallback keeps install portable |
+| Agent capture | `ffmpeg` (ddagrab/gdigrab) → `robotjs` → `screenshot-desktop` → `powershell` → synthetic | ffmpeg captures on the GPU and encodes with Quick Sync; robotjs returns raw pixels but is CPU-bound (17–57 ms/frame) |
+| Encoding | ffmpeg (in-driver) → `sharp` (native libvips) → `jpeg-js` (pure JS) | ffmpeg frames arrive pre-encoded (no second pass); sharp ≈ 4× faster than JS; JS fallback keeps install portable |
 | Input | `robotjs` → Windows PowerShell/Win32 bridge → dry-run | Verified on this machine: robotjs 0.9.1 works on Node 24 |
 
 ---

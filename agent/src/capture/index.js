@@ -4,6 +4,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { encode, readJpegSize } from './jpeg.js';
+import { createFfmpegCapture } from './ffmpeg.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const NATIVE_DIR = path.resolve(here, '../../native');
@@ -15,13 +16,20 @@ const NATIVE_DIR = path.resolve(here, '../../native');
  *   grab()    - Promise<{ data, width, height, mime }>
  *   close()
  *
- * Selection order (CAPTURE_DRIVER=auto): screenshot-desktop -> powershell -> synthetic.
+ * Selection order (CAPTURE_DRIVER=auto): ffmpeg -> robotjs -> screenshot-desktop
+ * -> powershell -> synthetic.
+ *
+ * ffmpeg comes first because GPU capture + hardware MJPEG encode is far cheaper
+ * than copying the framebuffer and encoding it in JavaScript. It is only used
+ * when a combination actually produces a frame, so a missing ffmpeg install
+ * simply falls through to robotjs.
  */
 export async function createCaptureDriver(config) {
   const wanted = config.captureDriver || 'auto';
-  const autoOrder = ['robotjs', 'screenshot-desktop', 'powershell', 'synthetic'];
+  const autoOrder = ['ffmpeg', 'robotjs', 'screenshot-desktop', 'powershell', 'synthetic'];
   const attempts = {
     auto: autoOrder,
+    ffmpeg: ['ffmpeg', 'robotjs', 'screenshot-desktop', 'synthetic'],
     robotjs: ['robotjs', 'synthetic'],
     'screenshot-desktop': ['screenshot-desktop', 'synthetic'],
     powershell: ['powershell', 'synthetic'],
@@ -31,6 +39,11 @@ export async function createCaptureDriver(config) {
   const failures = [];
   for (const name of attempts) {
     try {
+      if (name === 'ffmpeg') {
+        const driver = await createFfmpegCapture(config);
+        if (driver) return driver;
+        throw new Error('unavailable');
+      }
       if (name === 'robotjs') return await createRobotCapture();
       if (name === 'screenshot-desktop') return await createScreenshotDesktop();
       if (name === 'powershell') return await createPowerShellCapture();

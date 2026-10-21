@@ -106,8 +106,11 @@ npm run dev:agent      # desktop agent (same machine or another one)
 | `AUTO_ACCEPT` | `1` | auto-approve session requests in `approve` mode |
 | `ALLOW_CONTROL` | `1` | `0` = view-only |
 | `FPS` / `SCALE` / `QUALITY` | `15` / `0.65` / `55` | stream defaults (viewer can override) |
-| `CAPTURE_DRIVER` | `auto` | `robotjs` \| `screenshot-desktop` \| `powershell` \| `synthetic` |
+| `CAPTURE_DRIVER` | `auto` | `ffmpeg` \| `robotjs` \| `screenshot-desktop` \| `powershell` \| `synthetic` |
 | `INPUT_DRIVER` | `auto` | `robotjs` \| `powershell` \| `dry-run` |
+| `FFMPEG_PATH` | `ffmpeg` | path to the ffmpeg binary (see *Hardware capture*) |
+| `FFMPEG_INPUT` | `auto` | `ddagrab` \| `gdigrab` — force a capture source |
+| `FFMPEG_ENCODER` | `auto` | `mjpeg_qsv` \| `mjpeg` — force a hardware/software encoder |
 
 ## How the drivers work
 
@@ -115,9 +118,26 @@ The agent picks the best driver it can load and **logs which one is active**:
 
 | Concern | Preference order | Notes |
 |---|---|---|
-| Screen capture | `robotjs` → `screenshot-desktop` → `powershell` → `synthetic` | robotjs returns raw pixels (no temp files); channel order BGRA/RGBA is auto-detected at startup, not assumed. Capture + JPEG encoding run on a worker thread, so input dispatch never waits for the next frame |
+| Screen capture | `ffmpeg` → `robotjs` → `screenshot-desktop` → `powershell` → `synthetic` | ffmpeg captures on the GPU (Direct3D duplication) and encodes JPEG with the hardware encoder when available; robotjs returns raw pixels but is CPU-bound. Channel order BGRA/RGBA is auto-detected, not assumed. Capture + JPEG encoding run on a worker thread, so input dispatch never waits for the next frame |
 | Input injection | `robotjs` → Windows PowerShell/Win32 bridge → `dry-run` | the PowerShell bridge (`agent/native/win-input.ps1`) is a persistent process speaking a line protocol, so keystrokes stay fast |
-| JPEG encoding | `sharp` → `jpeg-js` | sharp ≈ 4× faster; jpeg-js keeps the agent installable without native modules |
+| JPEG encoding | `ffmpeg` (in-driver) → `sharp` → `jpeg-js` | ffmpeg frames arrive already scaled and encoded, so they are forwarded without a second pass; sharp ≈ 4× faster than jpeg-js, which keeps the agent installable without native modules |
+
+### Hardware capture (optional, recommended)
+
+With ffmpeg installed the agent captures via Direct3D 11 Desktop Duplication and
+encodes with Intel Quick Sync, which is far cheaper than copying the framebuffer
+and encoding in JavaScript:
+
+```powershell
+winget install Gyan.FFmpeg     # then restart the agent
+```
+
+ffmpeg must be **6.0 or newer** (the `ddagrab` filter). The agent probes four
+combinations — `ddagrab+mjpeg_qsv`, `ddagrab+mjpeg`, `gdigrab+mjpeg_qsv`,
+`gdigrab+mjpeg` — and uses the first that actually produces a frame, so a
+missing ffmpeg or an unsupported GPU simply falls back to robotjs. Force a
+combination with `FFMPEG_INPUT` / `FFMPEG_ENCODER`, or disable ffmpeg entirely
+with `CAPTURE_DRIVER=robotjs`.
 
 Measured on a 1536×864 Windows machine with the robotjs + sharp drivers:
 ≈ **44 ms** capture and **20–30 ms** resize/encode per frame (worker thread),

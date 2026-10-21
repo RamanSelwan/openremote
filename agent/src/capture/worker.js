@@ -67,8 +67,14 @@ parentPort.on('message', async (msg) => {
       // grab so quality/scale changes take effect on the next frame.
       if (msg.config) cfg = { ...cfg, ...msg.config };
       const startedAt = Date.now();
-      const frame = await capture.grab();
+      const frame = await capture.grab(cfg);
       const captureMs = Date.now() - startedAt;
+
+      // Push-model drivers (ffmpeg) report when nothing new has arrived.
+      if (frame?.unchanged) {
+        parentPort.postMessage({ type: 'frame', id: msg.id, unchanged: true });
+        return;
+      }
 
       if (frame.raw) {
         const sig = signature(frame.raw);
@@ -94,8 +100,8 @@ parentPort.on('message', async (msg) => {
           data: buffer,
           width: out.width,
           height: out.height,
-          sourceWidth: frame.width,
-          sourceHeight: frame.height,
+          sourceWidth: frame.sourceWidth || frame.width,
+          sourceHeight: frame.sourceHeight || frame.height,
           captureMs,
           encodeMs,
         },

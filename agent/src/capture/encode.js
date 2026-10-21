@@ -31,6 +31,13 @@ export async function createFrameProcessor() {
   async function process(frame, { scale = 1, quality = 60 } = {}) {
     const targetW = Math.max(160, Math.round(frame.width * scale));
     const targetH = Math.max(90, Math.round(frame.height * scale));
+    const needsResize = targetW < frame.width || targetH < frame.height;
+
+    // ffmpeg already scaled and encoded this frame at the requested quality.
+    // Re-encoding it would only burn CPU and add generational artefacts.
+    if (frame.mime === 'image/jpeg' && frame.encoded && !needsResize) {
+      return { data: frame.data, width: frame.width, height: frame.height };
+    }
 
     if (!sharp) {
       return processFrameJs(frame, { scale, quality });
@@ -50,7 +57,6 @@ export async function createFrameProcessor() {
       pipeline = sharp(frame.data);
     }
 
-    const needsResize = targetW < frame.width || targetH < frame.height;
     if (needsResize) {
       pipeline = pipeline.resize(targetW, targetH, {
         kernel: 'nearest',
