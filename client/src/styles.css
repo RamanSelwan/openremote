@@ -468,6 +468,42 @@ select:focus {
   min-width: 230px;
 }
 
+.pair-input {
+  text-transform: uppercase;
+}
+
+.watching-card {
+  margin-bottom: 18px;
+  border-color: rgba(79, 255, 165, 0.35);
+}
+
+.watching-card h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.watching-card code {
+  background: #0d1220;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+
+.watching-card .cmd {
+  background: #0d1220;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  font-size: 13px;
+  color: var(--text);
+  margin: 10px 0;
+}
+
+.watching-card .connect-row {
+  margin-top: 10px;
+}
+
 .pair-head {
   display: flex;
   align-items: center;
