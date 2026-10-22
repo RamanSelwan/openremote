@@ -436,6 +436,38 @@ select:focus {
   border-color: rgba(79, 132, 255, 0.5);
 }
 
+.connect-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.connect-copy h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.connect-copy .muted {
+  margin: 0;
+  font-size: 14px;
+}
+
+.connect-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.connect-input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 2px;
+  min-width: 230px;
+}
+
 .pair-head {
   display: flex;
   align-items: center;

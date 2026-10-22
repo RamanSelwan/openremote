@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import DeviceCard from '../components/DeviceCard.jsx';
 
@@ -10,12 +11,15 @@ const INSTRUCTIONS = [
 ];
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pair, setPair] = useState(null); // { code, ttlMinutes }
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [connectId, setConnectId] = useState('');
+  const [connecting, setConnecting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -46,6 +50,31 @@ export default function Dashboard() {
       setError(err.message);
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function connectById(e) {
+    e.preventDefault();
+    // Device IDs are shown on each card with spaces (e.g. "188 650 548 857");
+    // strip everything that is not a digit so a pasted code always matches.
+    const id = connectId.replace(/\D/g, '');
+    if (!id) {
+      setError('Enter a device ID to connect.');
+      return;
+    }
+    setConnecting(true);
+    setError('');
+    try {
+      const { device } = await api(`/devices/${id}`);
+      if (device.status !== 'online') {
+        setError(`"${device.name}" is offline. Start the agent on that machine, then try again.`);
+        return;
+      }
+      navigate(`/device/${device.deviceId}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setConnecting(false);
     }
   }
 
@@ -88,6 +117,33 @@ export default function Dashboard() {
       </div>
 
       {error && <div className="alert">{error}</div>}
+
+      <form className="card connect-card" onSubmit={connectById}>
+        <div className="connect-copy">
+          <h2>Connect to a device</h2>
+          <p className="muted">
+            Type the device ID shown on its card, then press Connect.
+          </p>
+        </div>
+        <div className="connect-row">
+          <input
+            className="connect-input"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
+            placeholder="188 650 548 857"
+            aria-label="Device ID"
+            value={connectId}
+            onChange={(e) => {
+              setConnectId(e.target.value);
+              if (error) setError('');
+            }}
+          />
+          <button className="btn btn-primary" type="submit" disabled={connecting || !connectId.trim()}>
+            {connecting ? 'Connecting…' : 'Connect'}
+          </button>
+        </div>
+      </form>
 
       {pair && (
         <div className="card pair-card">
