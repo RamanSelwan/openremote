@@ -199,6 +199,14 @@ repo, then set `MONGODB_URI` (MongoDB Atlas free tier is enough) and leave
 Both hosts must allow WebSockets — Render does by default, Vercel does not
 proxy them, which is why the socket connects directly to the Render origin.
 
+> **Keep the two in sync.** Render redeploys on push but Vercel does not, so they
+> drift easily — the same repo can serve two different dashboards depending on
+> which URL you open. Set the `VERCEL_DEPLOY_HOOK` secret to have
+> [`.github/workflows/vercel.yml`](./.github/workflows/vercel.yml) rebuild Vercel
+> on every push, and see
+> [DEPLOYMENT.md § Keeping the two hosts in sync](./DEPLOYMENT.md) for how to
+> tell which build a host is serving.
+
 ### Agent on the controlled machine
 
 ```bash

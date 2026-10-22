@@ -89,6 +89,50 @@ front of both, or simply serve the dashboard from the Render service itself
 
 After deploy, Vercel gives you `https://your-app.vercel.app`. Put that into Render's `CLIENT_ORIGIN`.
 
+### Keeping the two hosts in sync
+
+**This is the failure mode to watch for.** Render and Vercel deploy
+independently, so it is easy to end up with Render serving the new dashboard
+while Vercel still serves a build from days ago — same repo, two different
+frontends, and whichever URL you open decides what you see.
+
+Render redeploys on every push (`autoDeploy: true` in `render.yaml`). Vercel
+needs one of:
+
+1. **Git integration** — Vercel → Settings → Git → confirm the project is
+   connected to this repo with Production Branch `main`. If it is connected but
+   not rebuilding, auto-deploy is off for the project.
+2. **A deploy hook** (works even without Git integration) — Vercel → Settings →
+   Git → Deploy Hooks → create one for `main`, then add the URL as the
+   `VERCEL_DEPLOY_HOOK` repository secret. The workflow in
+   [`.github/workflows/vercel.yml`](./.github/workflows/vercel.yml) then fires it
+   on every push that touches `client/**`. It skips silently until the secret
+   exists, so it never breaks a build.
+
+To confirm what a host is actually serving, compare the bundle each one
+references — Vite hashes the filename per build, so a stale deploy is obvious:
+
+```bash
+curl -s https://your-app.vercel.app/ | grep -o 'assets/index-[^"]*\.js'
+curl -s https://your-render-app.onrender.com/ | grep -o 'assets/index-[^"]*\.js'
+```
+
+Different hashes mean the two are out of sync. A hash-mismatch after a push
+always means a build did not run — not a code problem.
+
+### Common misconfiguration
+
+| Symptom | Cause |
+|---|---|
+| Vercel dashboard loads, but every request fails and the socket never connects | `VITE_API_URL` / `VITE_SERVER_URL` were empty (or wrong) **at build time**. Vite inlines them, so set them and redeploy — editing them without a rebuild changes nothing. |
+| Vercel dashboard unchanged after a push | That project never rebuilt. See *Keeping the two hosts in sync*. |
+| Render URL works, Vercel shows `Failed to fetch` | `CLIENT_ORIGIN` on Render is missing the exact Vercel origin (no trailing slash). `isAllowedOrigin()` in [`server/src/config/env.js`](server/src/config/env.js) rejects the browser origin otherwise. |
+| Socket fails only through Vercel | Vercel rewrites do not carry WebSocket upgrades. The browser must reach Render directly for `/socket.io` — that is what `VITE_SERVER_URL` is for. |
+
+Preview deployments get their own URL, so either add `CLIENT_ORIGIN`
+comma-separated for each preview host, or only test against Production.
+
+
 ## 4) Connect the pieces
 1. Deploy Render backend first. Verify `/api/health` returns `{"ok":true,...}`.
 2. Set the Vercel env vars (`VITE_API_URL`, `VITE_SERVER_URL`) to your Render URL (see §3).
@@ -146,7 +190,7 @@ Recommendations in production:
 ## 8) Troubleshooting
 - **CORS/WS blocked**: Ensure `CLIENT_ORIGIN` matches exact Vercel URL. If using rewrites, browser hits Vercel origin so it's fine. If calling Render directly from Vercel app, cross-origin is allowed only if origin matches.
 - **Socket disconnects**: Check Render logs (Events/Logs). Free tier sleeps; wake up on first request. Also ensure no adblock interfering with WS.
-- **Agent can't enroll/connect**: Verify `AGENT_SERVER_URL` points to Render HTTPS URL. Check agent logs in terminal. Enrollment uses the pairing code from dashboard.
+- **Agent can't enroll/connect**: Verify `SERVER_URL` points to the Render HTTPS URL. Check agent logs in terminal. Enrollment uses the pairing code from dashboard.
 - **Black/empty frames on Windows**: The PowerShell capture runs `SetProcessDPIAware()` and copies primary screen. Multi-monitor? Currently captures primary screen only (`[System.Windows.Forms.Screen]::PrimaryScreen.Bounds`).
 - **High CPU/latency**: Lower `SCALE` (e.g. 0.5), reduce `FPS`/`QUALITY`. Watch agent CPU and network. 
 

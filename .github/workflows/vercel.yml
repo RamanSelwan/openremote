@@ -1,0 +1,42 @@
+name: Deploy frontend to Vercel
+
+# Render deploys the backend automatically (render.yaml sets autoDeploy: true).
+# Vercel is a separate origin, so it needs its own trigger. Without this the two
+# hosts drift: Render serves the new dashboard while Vercel keeps serving a
+# stale build.
+#
+# Setup (one time):
+#   1. Vercel -> Project -> Settings -> Git -> Deploy Hooks
+#   2. Create a hook for branch `main`, copy the URL
+#   3. GitHub -> Settings -> Secrets and variables -> Actions
+#      New repository secret: VERCEL_DEPLOY_HOOK
+# Until that secret exists the job skips instead of failing the build.
+
+on:
+  push:
+    branches: [main]
+    # Only the frontend needs a Vercel rebuild; backend/agent edits are
+    # deployed by Render.
+    paths:
+      - 'client/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vercel.json'
+      - '.github/workflows/vercel.yml'
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Vercel deploy hook
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "VERCEL_DEPLOY_HOOK secret is not set - skipping."
+            echo "Add it under Settings -> Secrets and variables -> Actions."
+            exit 0
+          fi
+          # -f makes curl fail the step on any non-2xx response.
+          curl -fsS -X POST "$HOOK" -o /dev/null -w "deploy hook -> HTTP %{http_code}\n"
